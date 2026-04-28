@@ -8,6 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from telegram import Update
+from telegram.error import Conflict
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from pdf2docx import Converter
 
@@ -167,6 +168,13 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await status.edit_text(f"❌ Conversion failed:\n{e}")
 
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if isinstance(context.error, Conflict):
+        logger.warning("Conflict: another bot instance is running. Ignoring.")
+        return
+    logger.error("Unhandled error: %s", context.error)
+
+
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Please send me a *PDF*, *DOCX*, or *DOC* file to convert.\n"
@@ -186,12 +194,13 @@ def main() -> None:
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    app.add_error_handler(error_handler)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
     logger.info("Bot is running…")
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
