@@ -25,8 +25,10 @@ MAX_FILE_BYTES = 20 * 1024 * 1024  # Telegram Bot API download limit
 
 LIBREOFFICE_PATHS = [
     "libreoffice",
+    "soffice",
     "/Applications/LibreOffice.app/Contents/MacOS/soffice",
     "/usr/bin/libreoffice",
+    "/usr/bin/soffice",
     "/usr/lib/libreoffice/program/soffice",
 ]
 
@@ -35,6 +37,13 @@ def _find_libreoffice() -> str | None:
     for candidate in LIBREOFFICE_PATHS:
         if shutil.which(candidate) or (os.path.isfile(candidate) and os.access(candidate, os.X_OK)):
             return candidate
+    for name in ("libreoffice", "soffice"):
+        try:
+            result = subprocess.run(["which", name], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except Exception:
+            pass
     return None
 
 
