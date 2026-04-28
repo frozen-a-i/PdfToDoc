@@ -144,13 +144,14 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await tg_file.download_to_drive(input_path)
 
         try:
+            loop = asyncio.get_event_loop()
             if ext == ".pdf":
                 output_name = Path(file_name).stem + ".docx"
                 output_path = os.path.join(tmpdir, output_name)
-                convert_pdf_to_docx(input_path, output_path)
+                await loop.run_in_executor(None, convert_pdf_to_docx, input_path, output_path)
                 caption = "✅ Here is your DOCX file!"
             else:
-                output_path = convert_docx_to_pdf(input_path, tmpdir)
+                output_path = await loop.run_in_executor(None, convert_docx_to_pdf, input_path, tmpdir)
                 output_name = Path(output_path).name
                 caption = "✅ Here is your PDF file!"
 
